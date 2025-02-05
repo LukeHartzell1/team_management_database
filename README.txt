@@ -72,3 +72,7 @@ Additional Notes:
 - The API endpoints are available at `/members/api/team-members/`.
 - The frontend SPA is built using Vue.js (included via CDN) and communicates with the API using JavaScript’s fetch API.
 - User experience has been enhanced with inline search, confirmation dialogs, and notifications.
+
+
+Total Time Spent:
+~4 hours
