@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Team Member Management</title>
+  <!-- Include Google Font: Roboto -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Include Vue.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <style>
+    /* Overall body style */
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    /* Container styling */
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    /* Header styling with blue accents */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #007BFF;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      color: #007BFF;
+    }
+    /* Button styling */
+    button {
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    /* Delete button styling */
+    .delete-btn {
+      background-color: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.2s ease;
+      margin-top: 10px;
+    }
+    .delete-btn:hover {
+      background-color: #c82333;
+    }
+    /* Card styling for team member display */
+    .card {
+      border: 1px solid #007BFF;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background-color: #e9f7ff;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+    .card:hover {
+      transform: scale(1.02);
+    }
+    /* Form group styling */
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #007BFF;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #007BFF;
+      box-shadow: 0 0 5px rgba(0,123,255,0.5);
+    }
+    /* Notification styling */
+    .notification {
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 16px;
+      text-align: center;
+    }
+    .notification.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .notification.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    /* Loading indicator */
+    .loading {
+      text-align: center;
+      font-size: 18px;
+      color: #007BFF;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+<div id="app" class="container">
+  <!-- Notification Banner -->
+  <div v-if="notification.message" :class="['notification', notification.type]">
+    [[ notification.message ]]
+  </div>
+  
+  <!-- Loading Indicator -->
+  <div v-if="loading" class="loading">
+    <p>Loading team members...</p>
+  </div>
+  
+  <!-- List Page -->
+  <div v-if="view === 'list' && !loading">
+    <div class="header">
+      <h1>Team Members</h1>
+      <button @click="changeView('add')">+ Add</button>
+    </div>
+    <p>You have [[ filteredMembers.length ]] team member[[ filteredMembers.length === 1 ? '' : 's' ]].</p>
+    <!-- Search Box -->
+    <div class="form-group">
+      <input type="text" v-model="searchQuery" placeholder="Search by name...">
+    </div>
+    <div v-for="member in filteredMembers" :key="member.id" class="card" @click="editMember(member)">
+      <p>
+        <strong>
+          [[ member.first_name ]] [[ member.last_name ]]
+          <span v-if="member.role==='admin'">(Admin)</span>
+        </strong>
+      </p>
+      <p>[[ formatPhoneNumber(member.phone) ]]</p>
+      <p>[[ member.email ]]</p>
+    </div>
+  </div>
+
+  <!-- Add Page -->
+  <div v-if="view === 'add'">
+    <h1>Add a Team Member</h1>
+    <p>Set email, location, and role.</p>
+    <h3>Info</h3>
+    <form @submit.prevent="saveMember">
+      <div class="form-group">
+        <label for="first_name">First Name</label>
+        <input id="first_name" type="text" v-model="form.first_name" required>
+      </div>
+      <div class="form-group">
+        <label for="last_name">Last Name</label>
+        <input id="last_name" type="text" v-model="form.last_name" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input id="email" type="email" v-model="form.email" required>
+      </div>
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input id="phone" type="text" v-model="form.phone" required>
+      </div>
+      <div class="form-group">
+        <label for="role">Role</label>
+        <select id="role" v-model="form.role">
+          <option value="regular">Regular</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button type="submit">Save</button>
+      <button type="button" @click="cancel">Cancel</button>
+    </form>
+  </div>
+
+  <!-- Edit Page -->
+  <div v-if="view === 'edit'">
+    <h1>Edit Team Member</h1>
+    <h3>Info</h3>
+    <form @submit.prevent="saveMember">
+      <div class="form-group">
+        <label for="first_name_edit">First Name</label>
+        <input id="first_name_edit" type="text" v-model="form.first_name" required>
+      </div>
+      <div class="form-group">
+        <label for="last_name_edit">Last Name</label>
+        <input id="last_name_edit" type="text" v-model="form.last_name" required>
+      </div>
+      <div class="form-group">
+        <label for="email_edit">Email</label>
+        <input id="email_edit" type="email" v-model="form.email" required>
+      </div>
+      <div class="form-group">
+        <label for="phone_edit">Phone Number</label>
+        <input id="phone_edit" type="text" v-model="form.phone" required>
+      </div>
+      <div class="form-group">
+        <label for="role_edit">Role</label>
+        <select id="role_edit" v-model="form.role">
+          <option value="regular">Regular</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button type="submit">Save</button>
+      <button type="button" @click="cancel">Cancel</button>
+      <button type="button" class="delete-btn" @click="deleteMember">Delete</button>
+    </form>
+  </div>
+</div>
+
+<script>
+new Vue({
+  el: '#app',
+  delimiters: ['[[', ']]'],
+  data: {
+    teamMembers: [],
+    view: 'list', // 'list', 'add', or 'edit'
+    form: {
+      id: null,
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      role: 'regular'
+    },
+    searchQuery: '',
+    loading: false,
+    notification: {
+      message: '',
+      type: '' // "success" or "error"
+    }
+  },
+  computed: {
+    filteredMembers() {
+      if (!this.searchQuery) {
+        return this.teamMembers;
+      }
+      return this.teamMembers.filter(member => {
+        const fullName = (member.first_name + " " + member.last_name).toLowerCase();
+        return fullName.includes(this.searchQuery.toLowerCase());
+      });
+    }
+  },
+  created() {
+    this.fetchMembers();
+  },
+  methods: {
+    fetchMembers() {
+      this.loading = true;
+      fetch('/members/api/team-members/')
+        .then(response => response.json())
+        .then(data => {
+          this.teamMembers = data;
+          this.loading = false;
+        })
+        .catch(err => {
+          console.error("Error fetching team members:", err);
+          this.showNotification("Error fetching team members", "error");
+          this.loading = false;
+        });
+    },
+    changeView(newView) {
+      this.view = newView;
+      if (newView === 'add') {
+        this.resetForm();
+      }
+    },
+    resetForm() {
+      this.form = { id: null, first_name: '', last_name: '', email: '', phone: '', role: 'regular' };
+    },
+    saveMember() {
+      // Validate that phone number contains only digits
+      if (!/^\d+$/.test(this.form.phone)) {
+        this.showNotification("Phone number must contain only numbers.", "error");
+        return;
+      }
+      
+      if (this.view === 'add') {
+        // POST: Add new team member
+        fetch('/members/api/team-members/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.form)
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(errData => {
+              let messages = [];
+              for (let key in errData) {
+                let msg = Array.isArray(errData[key]) ? errData[key].join(", ") : errData[key];
+                messages.push(`${key}: ${msg}`);
+              }
+              throw new Error(messages.join(" | "));
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          this.showNotification("Team member added successfully", "success");
+          this.fetchMembers();
+          this.changeView('list');
+        })
+        .catch(err => {
+          console.error(err);
+          this.showNotification(err.message, "error");
+        });
+      } else if (this.view === 'edit') {
+        // PUT: Update team member
+        fetch(`/members/api/team-members/${this.form.id}/`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.form)
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(errData => {
+              let messages = [];
+              for (let key in errData) {
+                let msg = Array.isArray(errData[key]) ? errData[key].join(", ") : errData[key];
+                messages.push(`${key}: ${msg}`);
+              }
+              throw new Error(messages.join(" | "));
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          this.showNotification("Team member updated successfully", "success");
+          this.fetchMembers();
+          this.changeView('list');
+        })
+        .catch(err => {
+          console.error(err);
+          this.showNotification(err.message, "error");
+        });
+      }
+    },
+    editMember(member) {
+      this.form = Object.assign({}, member);
+      this.view = 'edit';
+    },
+    deleteMember() {
+      if (confirm("Are you sure you want to delete this team member?")) {
+        fetch(`/members/api/team-members/${this.form.id}/`, {
+          method: 'DELETE'
+        })
+        .then(response => {
+          if (response.status !== 204) throw new Error('Failed to delete team member.');
+          this.showNotification("Team member deleted successfully", "success");
+          this.fetchMembers();
+          this.changeView('list');
+        })
+        .catch(err => {
+          console.error(err);
+          this.showNotification(err.message, "error");
+        });
+      }
+    },
+    cancel() {
+      this.changeView('list');
+    },
+    showNotification(message, type) {
+      this.notification.message = message;
+      this.notification.type = type;
+      setTimeout(() => {
+        this.notification.message = "";
+        this.notification.type = "";
+      }, 3000);
+    },
+    formatPhoneNumber(phone) {
+      // Remove any non-digit characters (shouldn't be necessary if validated, but just in case)
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length === 10) {
+        return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+      } else if (digits.length === 7) {
+        return digits.replace(/(\d{3})(\d{4})/, '$1-$2');
+      } else {
+        return phone;
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

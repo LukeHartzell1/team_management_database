@@ -1,0 +1,55 @@
+Testing Instructions for Team Member Management Application
+=============================================================
+
+Manual Testing:
+---------------
+1. **Access the Application:**
+   - Make migrations using 'python manage.py makemigrations' then 'python manage.py migrate'
+   - Start the development server: `python manage.py runserver`
+   - Open your browser at http://127.0.0.1:8000/ and verify that the home page displays the list of team members.
+
+2. **List Page:**
+   - Confirm that the header shows the correct count of team members.
+   - Use the search box to filter team members by name.
+   - Click on a team member to navigate to the Edit page.
+
+3. **Add Page:**
+   - Click the "+ Add" button to navigate to the Add page.
+   - Fill in all required fields (first name, last name, phone number, email, and select a role).
+   - Click "Save" and verify that the new team member appears on the List page with a success notification.
+
+4. **Edit Page:**
+   - Click on an existing team member to open the Edit page.
+   - Modify one or more fields and click "Save". Ensure that the changes are visible on the List page.
+   - Click the "Delete" button, confirm the deletion, and verify that the team member is removed with a notification.
+
+5. **Error Handling:**
+   - Try submitting the form with missing fields to see inline validation.
+   - Optionally, simulate server errors (e.g., by stopping the server) to confirm that error notifications display appropriately.
+
+Automated Testing:
+-------------------
+1. **Django Tests:**
+   - Run all tests using:
+     ```
+     python manage.py test members
+     ```
+   - Confirm that all tests in `members/tests.py` pass.
+
+2. **API Testing:**
+   - Use a tool like Postman or curl to send HTTP requests (GET, POST, PUT, DELETE) to:
+     ```
+     http://127.0.0.1:8000/members/api/team-members/
+     ```
+   - Validate that the responses are correct.
+
+3. **Browser Tools:**
+   - Use your browser’s developer tools (Console and Network tabs) to monitor API calls and ensure that notifications and error messages are working as expected.
+
+Additional Recommendations:
+---------------------------
+- Test across different browsers to ensure compatibility.
+- After making any modifications, update tests accordingly.
+- For further front-end testing, consider using automated tools such as Selenium or Cypress if desired.
+
+Happy Testing!
